@@ -2,6 +2,7 @@
 .env~
 .claude
 .gemini
+dist
 
 .idea
 *.iml
