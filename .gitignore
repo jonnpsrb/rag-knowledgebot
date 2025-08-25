@@ -1,0 +1,17 @@
+.env
+.env~
+.claude
+.gemini
+
+.idea
+*.iml
+
+.DS_Store
+Thumbs.db
+
+__pycache__
+
+# pipeline
+pipeline/pdf/**
+# except
+pipeline/pdf/.gitkeep
