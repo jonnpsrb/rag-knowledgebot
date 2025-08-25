@@ -49,27 +49,8 @@ def get_pdf_retriever():
         }
     )
 
-def get_web_retriever():
-    from qdrant_client.http import models
-    vector_store = get_vector_store()
-    return vector_store.as_retriever(
-        search_kwargs={
-            "k": config.RETRIEVAL_TOP_K,
-            "score_threshold": config.RETRIEVAL_SCORE_THRESHOLD,
-            "filter": models.Filter(
-                must=[
-                    models.FieldCondition(
-                        key="metadata.type",
-                        match=models.MatchValue(value="web_content")
-                    )
-                ]
-            )
-        }
-    )
-
 def get_rag_chain():
     pdf_retriever = get_pdf_retriever()
-    web_retriever = get_web_retriever()
 
     llm = ChatGroq(api_key=config.GROQ_API_KEY, model=config.LLM_MODEL_NAME)
 
@@ -87,32 +68,19 @@ def get_rag_chain():
             source_info = ""
             if doc.metadata.get("type") == "pdf":
                 source_info = f" (Source: {doc.metadata.get('filename', 'Unknown')}, Page {doc.metadata.get('page', 'N/A')})"
-            elif doc.metadata.get("type") == "web_content":
-                source_info = f" (Source: {doc.metadata.get('url', 'Unknown URL')})"
             formatted += f"{doc.page_content}{source_info}\n\n"
         return formatted
 
     def get_context(inputs):
         question = inputs.get("question", inputs.get("input", ""))
 
-        # Retrieve from both sources separately
+        # Retrieve pdf source
         pdf_docs = pdf_retriever.invoke(question)
-        web_docs = web_retriever.invoke(question)
         
         # Format with source identification
         pdf_context = format_docs_with_source(pdf_docs, "PDF Documentation")
-        web_context = format_docs_with_source(web_docs, "Website")
-        
-        # Combine contexts
-        combined_context = ""
-        if pdf_context:
-            combined_context += "Result from PDF Documentation:\n"
-            combined_context += pdf_context
-        if web_context:
-            combined_context += "Result from Accurate Website:\n"
-            combined_context += web_context
             
-        return combined_context if combined_context else "No relevant information found."
+        return pdf_context
     
     rag_chain = (
         {
